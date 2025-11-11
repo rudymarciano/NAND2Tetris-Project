@@ -1,0 +1,71 @@
+class Main {
+    function void main() {
+        var Gun gun;
+        var Target target;
+        var boolean flag;
+        var int speed;
+        var boolean game_on;
+        var int restart;
+        let game_on = true;
+
+        while (game_on) {
+
+            // Set a decorative border
+            do Screen.setColor(true);
+            do Screen.drawRectangle(0, 0, 511, 10);
+            do Screen.drawRectangle(0, 240, 511, 250);
+            do Screen.drawRectangle(0, 10, 10, 240);
+            do Screen.drawRectangle(500, 10, 511, 240);
+            do Screen.drawRectangle(0, 0, 20, 20);     // Top-left corner
+            do Screen.drawRectangle(491, 0, 511, 20);  // Top-right corner
+            do Screen.drawRectangle(0, 230, 20, 250);  // Bottom-left corner
+            do Screen.drawRectangle(491, 230, 511, 250); // Bottom-right corner
+
+
+            let flag = true;
+            while (flag) {
+                do Output.moveCursor(3, 17);
+                do Output.printString("Welcome to ROCKET GAME");
+                do Output.moveCursor(5, 10);
+                do Output.printString("Choose a level: 1: Easy, 2:Medium, 3:Hell");
+                do Output.moveCursor(9, 30);
+                let speed = Keyboard.readInt("");
+                if ((speed = 1) | (speed = 2) | (speed = 3)) {
+                    let flag = false;
+                }
+
+            }
+
+            do Output.moveCursor(7,20);
+            do Output.printString("Press Space to Shoot");
+            do Sys.wait(1500);
+            do Screen.clearScreen();
+            let speed = 6 / speed;
+            let target = Target.new(speed);
+            do target.show_score();
+            let gun = Gun.new(0,0,(speed));
+            do target.draw_target(true);
+            do target.move(gun);
+            do Screen.clearScreen();
+            do target.show_final();
+            do Sys.wait(1000);
+
+            do Output.moveCursor(10, 20);
+            do Output.printString("AGAIN? 1: yes, 2: no");
+            do Output.moveCursor(13, 30);
+            let restart =  Keyboard.readInt("");
+            if (~(restart=1)) {
+                /* if player decide to play again */
+                do Output.moveCursor(10, 30);
+                do Screen.clearScreen();
+                do Output.printString("BYE");
+                do Sys.wait(2000);
+                do Screen.clearScreen();
+                do Sys.wait(2000);
+                return;
+            }
+            do Screen.clearScreen();
+        }
+        return;
+    }
+}

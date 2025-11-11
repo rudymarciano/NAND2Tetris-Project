@@ -1,0 +1,73 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/5/CPU.hdl
+/**
+ * The Hack Central Processing unit (CPU).
+ * Parses the binary code in the instruction input and executes it according to the
+ * Hack machine language specification. In the case of a C-instruction, computes the
+ * function specified by the instruction. If the instruction specifies to read a memory
+ * value, the inM input is expected to contain this value. If the instruction specifies
+ * to write a value to the memory, sets the outM output to this value, sets the addressM
+ * output to the target address, and asserts the writeM output (when writeM = 0, any
+ * value may appear in outM).
+ * If the reset input is 0, computes the address of the next instruction and sets the
+ * pc output to that value. If the reset input is 1, sets pc to 0.
+ * Note: The outM and writeM outputs are combinational: they are affected by the
+ * instruction's execution during the current cycle. The addressM and pc outputs are
+ * clocked: although they are affected by the instruction's execution, they commit to
+ * their new values only in the next cycle.
+ */
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+      // Détermination du type d'instruction (A ou C)
+    Not(in=instruction[15], out=AIns);  // A instruction (bit 15 = 0)
+    Not(in=AIns, out=CIns);             // C instruction (bit 15 = 1)
+
+    // Enregistrement A
+    And(a=CIns, b=instruction[5], out=ALUtoA);
+    Mux16(a=instruction, b=ALUout, sel=ALUtoA, out=Aregi);
+    Or(a=AIns, b=ALUtoA, out=loadA);
+    ARegister(in=Aregi, load=loadA, out=Aout);
+
+    // Sélection de la source pour AMout (selon bit 12)
+    Mux16(a=Aout, b=inM, sel=instruction[12], out=AMout);
+
+    // Enregistrement D
+    And(a=CIns, b=instruction[4], out=loadD);
+    DRegister(in=ALUout, load=loadD, out=Dout);
+
+    // ALU
+    ALU(x=Dout, y=AMout, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, zr=ZRout, ng=NGout);
+
+    // Sorties mémoire
+    Or16(a=false, b=Aout, out[0..14]=addressM);  // Adresse pour la mémoire
+    Or16(a=false, b=ALUout, out=outM);                               // Valeur à écrire dans M
+    And(a=CIns, b=instruction[3], out=writeM);   // Ecriture dans M ?
+
+    // Logique des sauts
+    And(a=ZRout, b=instruction[1], out=jeq);    // Saut si égal
+    And(a=NGout, b=instruction[2], out=jlt);    // Saut si négatif
+    Or(a=ZRout, b=NGout, out=zeroorneg);
+    Not(in=zeroorneg, out=positive);
+    And(a=positive, b=instruction[0], out=jgt); // Saut si positif
+    Or(a=jeq, b=jlt, out=jle);                  // Saut si égal ou négatif
+    Or(a=jle, b=jgt, out=jumptoA);              // Saut si l'une des conditions est vraie
+    And(a=CIns, b=jumptoA, out=PCload);
+    Not(in=PCload, out=PCinc);
+
+    // Compteur de programme (PC)
+    PC(in=Aout, inc=true, load=PCload, reset=reset, out[0..14]=pc);
+}
